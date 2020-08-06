@@ -8,6 +8,13 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
     '''
     Function to add basic interactivity to an axes
 
+    Add the following interactivity to an axis:
+    - with any button pressed on the legend ouside a legend line, drag and drop
+    - press the left mouse button on top of a legend line to turn it off/ on
+    - down/ up while pressing left button, de-/increases marker size/ linewidth
+    - right mouse button on top of legend line (not label) to bring it to front
+    - middle button on top of legend line to open textbox to enter line name
+
     Parameters:
     -----------
     (legend: legend handle
