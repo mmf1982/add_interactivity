@@ -4,11 +4,10 @@ import numpy as np
 from matplotlib.widgets import TextBox
 
 
-def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, loc=0, ax=None):
+def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, loc=0, ax=None, nodrag=False, legsize=12):
     """
     Function to add basic interactivity to an axes
 
-    Add the following interactivity to an axis:
     - with any button pressed on the legend outside a legend line, drag and drop
     - press the left mouse button on top of a legend line to turn it off/ on
     - down/ up while pressing left button, de-/increases marker size/ line width
@@ -47,11 +46,12 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
         if line.get_label()[0] == "_":
             line.set_label(line.get_label()[1:])
     if legend is None:
-        legend = ax.legend(loc=loc, ncol=ncol)
-    if int(matplotlib.__version__[0]) >= 3:
-        legend.set_draggable(True)
-    else:
-        legend.draggable(True)
+        legend = ax.legend(loc=loc, ncol=ncol, prop={"size": legsize})
+    if not nodrag:
+        if int(matplotlib.__version__[0]) >= 3:
+            legend.set_draggable(True)
+        else:
+            legend.draggable(True)
     linedic = {}
     for legline, line, text in zip(legend.get_lines(), lines, legend.get_texts()):
         if legline.get_linestyle() is "None":
@@ -113,9 +113,7 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
                     if ms > 1:
                         leg._legmarker.set_markersize(ms - 1)
                         plotline.set_markersize(ms - 1)
-                else:
-                    print("not implemented feature. Only down and up keys allowed")
-        elif event.mouseevent.button == 2 and isline:
+        elif event.mouseevent.button == 2 and isline and not nodrag:
             print("Type the new label in the box")
 
             def submit(stext):
@@ -124,10 +122,14 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
                 ax2.remove()
                 fig.canvas.draw()
                 text_box.disconnect_events()
-
             ax2 = plt.axes([0.12, 0.05, 0.78, 0.075])
             text_box = TextBox(ax2, 'new leg ', initial="")
             text_box.on_submit(submit)
+        elif event.mouseevent.key == "left" and not isline and event.mouseevent.button == 1:
+            if legend.texts[0].get_fontsize() > 1:
+                legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()-1)
+        elif event.mouseevent.key == "right" and not isline and event.mouseevent.button == 1:
+            legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()+1)
         fig.canvas.draw()
 
     _ = fig.canvas.mpl_connect('pick_event', onpick)
