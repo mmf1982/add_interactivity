@@ -42,6 +42,12 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
         ax = plt.gca()
     if lines is None:
         lines = ax.get_lines()
+        all_indices = []
+        for iidd, line in enumerate(lines):
+             if len(line.get_data()[0]) == 0 and not line.get_visible():
+                all_indices.append(iidd)
+        for in_iidd in all_indices[::-1]:
+            _ = lines.pop(in_iidd)
     for line in lines:
         if line.get_label()[0] == "_":
             line.set_label(line.get_label()[1:])
