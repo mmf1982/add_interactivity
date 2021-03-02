@@ -9,13 +9,13 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
     Function to add basic interactivity to an axes
 
     - with any button pressed on the legend outside a legend line, drag and drop
-    - press the left mouse button on top of a legend line to turn it off/ on
+    - press the left mouse button on top of a legend line to toggle it off/ on
     - down/ up while pressing left button, de-/increases marker size/ line width
     - right mouse button on top of legend line (not label) to bring it to front
     - middle button on top of legend line to open textbox to enter line name
 
     Parameters:
-    -----------
+    ------------
     (legend: legend handle
         a specific already existing legend can be passed. If none, a new legend
         is created)
@@ -35,6 +35,13 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
     (loc: integer
         passed to the legend creation. 0 for "best", see matplotlib.pylot.legend
         "loc" for help on parameters.
+    (ax: axis handle
+        axes to make interactive
+    (nodrag: bool
+        enable/ disable draggable legend
+    (legsize: int
+        font size of legend label
+
     """
     if fig is None:
         fig = plt.gcf()
@@ -44,7 +51,7 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
         lines = ax.get_lines()
         all_indices = []
         for iidd, line in enumerate(lines):
-             if len(line.get_data()[0]) == 0 and not line.get_visible():
+            if len(line.get_data()[0]) == 0 and not line.get_visible():
                 all_indices.append(iidd)
         for in_iidd in all_indices[::-1]:
             _ = lines.pop(in_iidd)
@@ -61,7 +68,6 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
     linedic = {}
     for legline, line, text in zip(legend.get_lines(), lines, legend.get_texts()):
         if legline.get_linestyle() is "None":
-            print("detected none")  # mention problems with linestyle is None
             legline.set_linewidth(0)
             legline.set_linestyle("-")
         linedic[legline] = (line, text)
@@ -137,7 +143,6 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
         elif event.mouseevent.key == "right" and not isline and event.mouseevent.button == 1:
             legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()+1)
         fig.canvas.draw()
-
     _ = fig.canvas.mpl_connect('pick_event', onpick)
     return
 
