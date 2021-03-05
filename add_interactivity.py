@@ -1,3 +1,4 @@
+""" Module to add interactivity to matplotlib legends"""
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,7 +68,7 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
             legend.draggable(True)
     linedic = {}
     for legline, line, text in zip(legend.get_lines(), lines, legend.get_texts()):
-        if legline.get_linestyle() is "None":
+        if legline.get_linestyle() == "None":
             legline.set_linewidth(0)
             legline.set_linestyle("-")
         linedic[legline] = (line, text)
@@ -144,7 +145,6 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
             legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()+1)
         fig.canvas.draw()
     _ = fig.canvas.mpl_connect('pick_event', onpick)
-    return
 
 
 if __name__ == "__main__":
