@@ -3,7 +3,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import TextBox
-
+coords = None
+legn = None
 
 def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, loc=0, ax=None, nodrag=False, legsize=12):
     """
@@ -83,6 +84,7 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
         function to be called on click (left, middle, right) on an artist
         """
         leg = event.artist
+        # print(event, event.mouseevent.button, leg, leg.get_label())
         try:
             (plotline, mtext) = linedic[leg]
             isline = True
@@ -139,26 +141,93 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
             text_box = TextBox(ax2, 'new leg ', initial="")
             text_box.on_submit(submit)
         elif event.mouseevent.key == "left" and not isline and event.mouseevent.button == 1:
-            if legend.texts[0].get_fontsize() > 1:
-                legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()-1)
+            if leg.parent == ax:
+                if legend.texts[0].get_fontsize() > 1:
+                    legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()-1)
         elif event.mouseevent.key == "right" and not isline and event.mouseevent.button == 1:
-            legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()+1)
+            if leg.parent == ax:
+                legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()+1)
         fig.canvas.draw()
     _ = fig.canvas.mpl_connect('pick_event', onpick)
 
+def add_ai_toall():
+    '''
+    add interactive legend to all axes in all open figures
+    '''
+    for mfignum in plt.get_fignums():
+        mfig = plt.figure(mfignum)
+        for ax in mfig.axes:
+            add_interactivity(fig=mfig, ncol=1, loc=0, ax=ax, nodrag=False, legsize=10)
+
+def enable_copy_paste():
+    '''
+    Function to call after plots are created to be able to copy paste line plots
+
+    A pick event on lines is activated and will copy the line data if 'c' is
+    pressed when the line is selected.
+
+    Clicking in any axes that was already present before this function had been
+    called, and clicking again while pressing 'v' will add the currently copied
+    plot
+    '''
+    print("to copy a line, click the right mouse button on a line")
+    print("to paste, press the middle mouse button in an axes")
+    global coords, legn
+    def onpick(event):
+        global coords, legn, artist
+        artist = event.artist
+        if event.mouseevent.button == 3 and type(artist) != matplotlib.legend.Legend:
+            try:
+                leglines = event.artist.axes.get_legend().get_lines()
+            except AttributeError:
+                leglines = []
+            if not artist in leglines:
+                coords = artist.get_data()
+                legn = artist.get_label()
+                print("copied ",legn)
+            else:
+                pass
+        else:
+            pass
+    def onclick(event):
+        global coords, legn
+        if event.button == 2:
+            print("pasted ", legn)
+            print("coordrange x: ", np.nanmin(coords[0]), np.nanmax(coords[0]))
+            print("coordrange y: ", np.nanmin(coords[1]), np.nanmax(coords[1]))
+            ax = event.inaxes
+            ax.plot(coords[0], coords[1], label=legn)
+            ax.figure.canvas.draw()
+    for mfignum in plt.get_fignums():
+        mfig = plt.figure(mfignum)
+        for ax in mfig.axes:
+            for lin in ax.lines:
+                lin.set_picker(5)
+        d = mfig.canvas.mpl_connect("pick_event", onpick)
+        f = mfig.canvas.mpl_connect('button_press_event', onclick)
+
+def main():
+    fig, ax = plt.subplots(1,2)
+    ax[0].plot(np.arange(10), lw=6)
+    ax[0].plot(np.arange(10) ** 1.5, 'o', ms=12)
+    ax[0].plot(np.sin(np.arange(10)) * 5, lw=6)
+    print(
+        "This is a simple plot to which interactivity has been added:\n",
+        " \n",
+        "* with any button pressed on the legend outside a legend line, you can drag and drop the legend\n",
+        "* press the left mouse button on top of a legend line to turn it off/ on\n",
+        "* down/ up arrows holding while pressing left button, de-/increases marker size and line width\n",
+        "* press the right mouse button on top of a legend line (not label) to bring it to the front\n",
+        "* press the middle mouse button on top of a legend line to open a textbox\n",
+        "  in this text box, write the new label for that line, then press enter\n",
+        "* press left/ right arrows while pressing left mouse button to in/de crease text size\n",
+        "    New features: \n",
+        "* a right mouse click on a line in the left plot copies the data.\n",
+        "* click middle button in the right plot to paste it.\n")
+    add_interactivity(ax=ax[0])
+    enable_copy_paste()
+    plt.show()
+
 
 if __name__ == "__main__":
-    plt.plot(np.arange(10), lw=6)
-    plt.plot(np.arange(10) ** 1.5, 'o', ms=12)
-    plt.plot(np.sin(np.arange(10)) * 5, lw=6)
-    print(
-        "This is a simple plot to which interactivity has been added",
-        "with any button pressed on the legend outside a legend line, you can drag and drop",
-        "press the left mouse button on top of a legend line to turn it off/ on",
-        "down/ up arrows holding while pressing left button, de-/increases marker size and line width",
-        "press again the left mouse button on top of the same line to turn in on again",
-        "press the right mouse button on top of a legend line (not label) to bring it to the front",
-        "press the middle mouse button on top of a legend line to open a textbox",
-        "in this text box, write the new label for that line, then press enter")
-    add_interactivity()
-    plt.show()
+    main()
