@@ -45,10 +45,10 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
         font size of legend label
 
     """
-    if fig is None:
-        fig = plt.gcf()
     if ax is None:
         ax = plt.gca()
+    if fig is None:
+        fig = ax.figure
     if lines is None:
         lines = ax.get_lines()
         all_indices = []
@@ -73,11 +73,19 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
             legline.set_linewidth(0)
             legline.set_linestyle("-")
         linedic[legline] = (line, text)
-        legline.set_picker(5)
+        if float(".".join(matplotlib.__version__.split(".")[:2])) < 3.3:
+            legline.set_picker(5)
+        else:
+            legline.set_picker(True)
+            legline.set_pickradius(5)
     if lines2 is not None:
         for line2, line in zip(lines2, lines):
             linedic[line2] = (line, " ")
-            line2.set_picker(5)
+            if float(".".join(matplotlib.__version__.split(".")[:2])) < 3.3:
+                legline.set_picker(5)
+            else:
+                legline.set_picker(True)
+                legline.set_pickradius(5)
 
     def onpick(event):
         """
@@ -128,12 +136,31 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
                     if ms > 1:
                         leg._legmarker.set_markersize(ms - 1)
                         plotline.set_markersize(ms - 1)
+                elif event.mouseevent.key in ["g", "k", "b", "c", "m", "r", "y", "w"]:
+                    leg.set_color(event.mouseevent.key)
+                    leg._legmarker.set_color(event.mouseevent.key)
+                    plotline.set_color(event.mouseevent.key)
+                elif event.mouseevent.key in ["x", "0", "1", "2", "3", "*", "|","<",
+                                              ">",'.', "+", "v", "8", "s","X", "d",
+                                              "D", "_", "o", "^"]:
+                    leg._legmarker.set_marker(event.mouseevent.key)
+                    plotline.set_marker(event.mouseevent.key)
+                elif event.mouseevent.key == "l":
+                    if lw == 0:
+                        if plotline.get_linestyle() == "None":
+                            plotline.set_linestyle('-')
+                        leg.set_linewidth(lw + 1)
+                        plotline.set_linewidth(lw+1)
+                    else:
+                        leg.set_linewidth(0)
+                        plotline.set_linewidth(0)
         elif event.mouseevent.button == 2 and isline and not nodrag:
             print("Type the new label in the box")
-
             def submit(stext):
                 print("you typed", stext)
+                plotline.set_label(stext)
                 mtext.set_text(stext)
+                leg.set_label(stext)
                 ax2.remove()
                 fig.canvas.draw()
                 text_box.disconnect_events()
@@ -141,12 +168,20 @@ def add_interactivity(legend=None, lines=None, fig=None, lines2=None, ncol=1, lo
             text_box = TextBox(ax2, 'new leg ', initial="")
             text_box.on_submit(submit)
         elif event.mouseevent.key == "left" and not isline and event.mouseevent.button == 1:
-            if leg.parent == ax:
+            #if leg.parent == ax:
                 if legend.texts[0].get_fontsize() > 1:
-                    legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()-1)
+                    if float(".".join(matplotlib.__version__.split(".")[:2])) < 3.3:
+                        legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()-1)
+                    else:
+                        for i in range(len(legend.texts)):
+                            legend.texts[i].set_fontsize(legend.texts[i].get_fontsize()-1)
         elif event.mouseevent.key == "right" and not isline and event.mouseevent.button == 1:
-            if leg.parent == ax:
-                legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()+1)
+            #if leg.parent == ax:
+                if float(".".join(matplotlib.__version__.split(".")[:2])) < 3.3:
+                    legend.texts[0].set_fontsize(legend.texts[0].get_fontsize()+1)
+                else:
+                    for i in range(len(legend.texts)):
+                        legend.texts[i].set_fontsize(legend.texts[i].get_fontsize()+1)
         fig.canvas.draw()
     _ = fig.canvas.mpl_connect('pick_event', onpick)
 
@@ -159,7 +194,7 @@ def add_ai_toall():
         for ax in mfig.axes:
             add_interactivity(fig=mfig, ncol=1, loc=0, ax=ax, nodrag=False, legsize=10)
 
-def enable_copy_paste():
+def enable_copy_paste(figs=None, legsize=10):
     '''
     Function to call after plots are created to be able to copy paste line plots
 
@@ -172,7 +207,31 @@ def enable_copy_paste():
     '''
     print("to copy a line, click the right mouse button on a line")
     print("to paste, press the middle mouse button in an axes")
+    print("to delete a line, double click on it")
     global coords, legn
+    def update_components(figs=None):
+        if figs is None:
+            figl = plt.get_fignums()
+            print(figl)
+            figs = []
+            for fi in figl:
+                figs.append(plt.figure(fi))
+        for mfig in figs:
+            print(mfig)
+            axs = mfig.axes
+            print(axs)
+            for ax in axs:
+                for lin in ax.lines:
+                    if not lin.get_picker():
+                        if float(".".join(matplotlib.__version__.split(".")[:2])) < 3.3:
+                            lin.set_picker(5)
+                        else:
+                            lin.set_picker(True)
+                            lin.set_pickradius(5)
+                    else:
+                        print(lin, " already has picker")
+            d = mfig.canvas.mpl_connect("pick_event", onpick)
+            f = mfig.canvas.mpl_connect('button_press_event', onclick)
     def onpick(event):
         global coords, legn, artist
         artist = event.artist
@@ -187,24 +246,40 @@ def enable_copy_paste():
                 print("copied ",legn)
             else:
                 pass
+        elif event.mouseevent.dblclick and type(artist) != matplotlib.legend.Legend:
+            try:
+                ax = artist.axes
+                artist.remove()
+                add_interactivity(ax=ax, legsize=legsize)
+                ax.figure.canvas.draw()
+                print("line removed")
+            except NotImplementedError:
+                pass
+            except ValueError as verr:
+                print(verr)
         else:
             pass
     def onclick(event):
         global coords, legn
         if event.button == 2:
-            print("pasted ", legn)
-            print("coordrange x: ", np.nanmin(coords[0]), np.nanmax(coords[0]))
-            print("coordrange y: ", np.nanmin(coords[1]), np.nanmax(coords[1]))
-            ax = event.inaxes
-            ax.plot(coords[0], coords[1], label=legn)
-            ax.figure.canvas.draw()
-    for mfignum in plt.get_fignums():
-        mfig = plt.figure(mfignum)
-        for ax in mfig.axes:
-            for lin in ax.lines:
-                lin.set_picker(5)
-        d = mfig.canvas.mpl_connect("pick_event", onpick)
-        f = mfig.canvas.mpl_connect('button_press_event', onclick)
+            if legn is not None:
+                print("pasted ", legn)
+                print("coordrange x: ", np.nanmin(coords[0]), np.nanmax(coords[0]))
+                print("coordrange y: ", np.nanmin(coords[1]), np.nanmax(coords[1]))
+                ax = event.inaxes
+                ax.plot(coords[0], coords[1], label=legn)
+                update_components(figs=figs)
+                add_interactivity(ax=ax, legsize=legsize)
+                ax.figure.canvas.draw()
+                legn = None
+    update_components(figs=figs)
+
+def interactive():
+    '''
+    add add_interactivity and enable_copy_paste on all axes
+    '''
+    enable_copy_paste()
+    add_ai_toall()
 
 def main():
     fig, ax = plt.subplots(1,2)
@@ -223,7 +298,8 @@ def main():
         "* press left/ right arrows while pressing left mouse button to in/de crease text size\n",
         "    New features: \n",
         "* a right mouse click on a line in the left plot copies the data.\n",
-        "* click middle button in the right plot to paste it.\n")
+        "* click middle button in the right plot to paste it.\n"
+        "* double click a line to remove it from the plot")
     add_interactivity(ax=ax[0])
     enable_copy_paste()
     plt.show()

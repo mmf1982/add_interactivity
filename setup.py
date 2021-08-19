@@ -5,7 +5,7 @@ with open("requirements_dev.txt", "r") as fid:
 
 setup(
     name="add_interactivity",
-    version="0.0.1",
+    version="0.0.2",
     author="Martina M Friedrich",
     author_email="5464@gmx.net",
     description="A package to add a clickable legend to python plots",
