@@ -8,7 +8,24 @@ legn = None
 mlist = []
 
 class add_interactivity_class():
+    '''
+    class to make the legend clickable.
+
+    Functionality:
+    left click: toggle line/ marker
+        with [x0123|<>.+v8sXdD_o^] : add/ change marker
+        with [gkbcmryw]: change marker/ line set_color
+        with up/ down: change marker size/ line thickness
+        with l: remove or add line (independent of marker)
+        with left/ right: increase/ decrease label font size
+    right click: bring to front
+    middle click: open text box to change label
+
+    '''
     def __init__(self, legend=None, lines=None, fig=None, lines2=None, ncol=1, loc=0, ax=None, nodrag=False, legsize=12):
+        '''
+        Constructor, set possible legend properties and for which fig, axes and legend
+        '''
         self.ncol = ncol
         self.loc = loc
         self.nodrag = nodrag
@@ -28,6 +45,9 @@ class add_interactivity_class():
         _ = self.fig.canvas.toolbar.actions()[-1].triggered.connect(self.renew)
 
     def _setup(self, legend, lines, lines2, ncol, loc, ax, nodrag, legsize):
+        '''
+        initialize the legend line/ plot line dictionary to work with and add legend
+        '''
         if lines is None:
             lines = ax.get_lines()
             all_indices = []
@@ -54,6 +74,7 @@ class add_interactivity_class():
             linedic[legline] = (line, text)
             if not legline.get_picker():
                 if float(".".join(matplotlib.__version__.split(".")[:2])) < 3.3:
+                    pass
                     legline.set_picker(5)
                 else:
                     legline.set_picker(True)
@@ -69,6 +90,9 @@ class add_interactivity_class():
         return legend, lines, linedic
 
     def renew(self, event=None):
+        '''
+        when line/ marker properties were changed, update everything
+        '''
         self.legend, self.lines, self.linedic = self._setup(None, None, None, self.ncol, self.loc, self.ax, self.nodrag, self.legsize)
         self.fig.canvas.draw()
 
@@ -76,6 +100,8 @@ class add_interactivity_class():
         """
         function to be called on click (left, middle, right) on an artist
         """
+        if isinstance(event.artist, matplotlib.legend.Legend):
+            return
         fig = event.artist.figure
         ax = event.artist.axes
         legend = ax.get_legend()
@@ -173,6 +199,9 @@ class add_interactivity_class():
         fig.canvas.draw()
 
 def add_interactivity(*args, **kwargs):
+    '''
+    wrapper for the add_interactivity_class object
+    '''
     global mlist
     element = add_interactivity_class(*args, **kwargs)
     mlist.append(element)
@@ -187,11 +216,19 @@ def add_ai_toall():
             add_interactivity(fig=mfig, ncol=1, loc=0, ax=ax, nodrag=False, legsize=10)
     return
 
-def cp_one(ax, mfig):
+def cp_one(mfig):
+    '''
+    add copy, paste, delete to one figure
+
+    Parameters:
+    ------------
+    mfig: matplotlib.Figure handle
+        figure handle on which to activate copy/ paste/ delete
+    '''
+    mfig.canvas.mpl_disconnect("all")
     def update_self(event):
-        #mfig = event.canvas.figure
-        #print(ax,mfig)
-        update_components(ax, mfig)
+        for ax in mfig.axes:
+            update_components(ax, mfig)
     def onpick(event):
         global coords, legn, artist, ax
         artist = event.artist
@@ -209,28 +246,21 @@ def cp_one(ax, mfig):
         elif event.mouseevent.dblclick and type(artist) != matplotlib.legend.Legend:
             try:
                 ax = artist.axes
-                # print("axes figure: ", ax, artist)
                 artist.remove()
-                #add_interactivity(ax=ax, legsize=legsize)
                 ax.figure.canvas.draw()
             except NotImplementedError:
                 pass
             except ValueError as verr:
                 pass
-                #print(verr)
         else:
             pass
     def onclick(event):
         global coords, legn
         if event.button == 2:
             if legn is not None:
-                # print("pasted ", legn)
-                # print("coordrange x: ", np.nanmin(coords[0]), np.nanmax(coords[0]))
-                # print("coordrange y: ", np.nanmin(coords[1]), np.nanmax(coords[1]))
                 ax = event.inaxes
                 ax.plot(coords[0], coords[1], label=legn)
                 update_components(ax, mfig)
-                # add_interactivity(ax=ax, legsize=legsize)
                 ax.figure.canvas.draw()
                 legn = None
     def update_components(ax, mfig):
@@ -243,13 +273,12 @@ def cp_one(ax, mfig):
                     lin.set_pickradius(5)
             else:
                 pass
-                #print(lin, " already has picker")
     d = mfig.canvas.mpl_connect("pick_event", onpick)
     f = mfig.canvas.mpl_connect('button_press_event', onclick)
-    update_components(ax, mfig)
+    for ax in mfig.axes:
+        update_components(ax, mfig)
     mfig.canvas.toolbar.actions()[7].triggered.connect(update_self)
     mfig.canvas.mpl_connect('draw_event', update_self)
-    return d, f
 
 def enable_copy_paste(figs=None):
     '''
@@ -265,19 +294,14 @@ def enable_copy_paste(figs=None):
     print("to copy a line, click the right mouse button on a line")
     print("to paste, press the middle mouse button in an axes")
     print("to delete a line, double click on it")
-    mlist = []
     if figs is None:
         figl = plt.get_fignums()
         figs = []
         for fi in figl:
             figs.append(plt.figure(fi))
     for mfig in figs:
-        axs = mfig.axes
-        for ax in axs:
-            a,b = cp_one(ax, mfig)
-            mlist.append(a)
-            mlist.append(b)
-    return mlist
+        cp_one(mfig)
+    return
 
 def clear_all():
     global mlist
@@ -311,9 +335,9 @@ def main(notext=False):
         "* click middle button in the right plot to paste it.\n"
         "* double click a line to remove it from the plot")
     mlist = add_ai_toall()
-    #add_interactivity(ax=ax[1])
-    enable_copy_paste()
+    mlist = enable_copy_paste()
     plt.show()
+    return
 
 
 if __name__ == "__main__":
