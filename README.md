@@ -28,6 +28,8 @@ Functionality added by add_interactivity:
 
 * "r", "k", "g", "b", "c", "m", "y", "w" to change line/ marker color 
 
+Since some of those letters (e.g. "l" or "o") are already activated by default on normal matplotlib axes ("l" makes axis log and "o" changes in zoom mode), it might be better to first move the legend outside the axes. You also notice a new entry in the toolbar, named "update". A click on this, updates the legend.
+
 Functionality added by enable_copy_paste:
 
 * double click on a line in the plot (not legend) removes the line
@@ -48,7 +50,7 @@ You can then call it after you make your plot by:
     ai.enable_copy_paste(figs=None)  #  same as cp_one on all figs:  (copy/ paste/ delete) functionality on all figures in list figs or on all open figures
     ai.interactive()  # to make both in one go on all open figures and axes.
     
-If this file is left in the folder with the same name (i.e. add_interactivity, remember to use "from add_interactivity import add_interactivity as ai" instead).
+If this file is left in the folder with the same name (i.e. add_interactivity), remember to use "from add_interactivity import add_interactivity as ai" instead).
 
 
 
