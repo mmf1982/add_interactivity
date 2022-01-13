@@ -16,7 +16,7 @@ if int(".".join(matplotlib.__version__.split(".")[0:1])) >= 3.5:
 else: 
     matplnew = False
 
-# print("is new:", matplnew, int(".".join(matplotlib.__version__.split(".")[0:2])))
+print("is new:", matplnew, int(".".join(matplotlib.__version__.split(".")[0:2])))
 
 class add_interactivity_class():
     '''
