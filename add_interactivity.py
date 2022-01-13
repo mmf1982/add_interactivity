@@ -11,7 +11,7 @@ coords = None
 legn = None
 mlist = []
 
-if float(".".join(matplotlib.__version__.split(".")[0:1])) >= 3.5:
+if float(".".join(matplotlib.__version__.split(".")[0:2])) >= 3.5:
     matplnew = True
 else: 
     matplnew = False
