@@ -11,12 +11,12 @@ coords = None
 legn = None
 mlist = []
 
-if int(".".join(matplotlib.__version__.split(".")[0:1])) >= 3.5:
+if float(".".join(matplotlib.__version__.split(".")[0:1])) >= 3.5:
     matplnew = True
 else: 
     matplnew = False
 
-print("is new:", matplnew, int(".".join(matplotlib.__version__.split(".")[0:2])))
+print("is new:", matplnew, float(".".join(matplotlib.__version__.split(".")[0:2])))
 
 class add_interactivity_class():
     '''
