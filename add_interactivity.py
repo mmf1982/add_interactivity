@@ -1,11 +1,20 @@
 """ Module to add interactivity to matplotlib legends"""
 import matplotlib
+try:
+    matplotlib.use("QT5Agg")
+except:
+    matplotlib.use("QT4Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import TextBox
 coords = None
 legn = None
 mlist = []
+
+if int(".".join(matplotlib.__version__.split(".")[0:1])) >= 3.5:
+    matplnew = True
+else: 
+    matplnew = False
 
 class add_interactivity_class():
     '''
@@ -126,38 +135,61 @@ class add_interactivity_class():
                 if vis:
                     leg.set_alpha(1.0)
                     plotline.set_alpha(1.0)
-                    leg._legmarker.set_alpha(1.0)  # for markers
+                    if matplnew:
+                        leg.set_alpha(1.0)
+                    else:
+                        leg._legmarker.set_alpha(1.0)  # for markers
                     mtext.set_visible(True)
                 else:
                     mtext.set_visible(False)
                     leg.set_alpha(0.1)
                     plotline.set_alpha(0.0)  # for markers
-                    leg._legmarker.set_alpha(0.1)  # for markers
+                    if matplnew:
+                        leg.set_alpha(0.1)
+                    else:
+                        leg._legmarker.set_alpha(0.1)  # for markers
                     leg.get_label()
             else:
                 lw = leg.get_linewidth()
-                ms = leg._legmarker.get_markersize()
+                if matplnew:
+                    ms = leg.get_markersize()
+                else:
+                    ms = leg._legmarker.get_markersize()
                 if event.mouseevent.key == "up":
                     if lw > 0:
                         leg.set_linewidth(lw + 1)
                         plotline.set_linewidth(lw + 1)
-                    leg._legmarker.set_markersize(ms + 1)
+                    if matplnew:
+                        leg.set_markersize(ms + 1)
+                    else:
+                        leg._legmarker.set_markersize(ms + 1)
                     plotline.set_markersize(ms + 1)
                 elif event.mouseevent.key == "down":
                     if lw > 1:
                         leg.set_linewidth(lw - 1)
                         plotline.set_linewidth(lw - 1)
                     if ms > 1:
-                        leg._legmarker.set_markersize(ms - 1)
+                        if matplnew:
+                            leg.set_markersize(ms - 1)
+                        else:
+                            leg._legmarker.set_markersize(ms - 1)
                         plotline.set_markersize(ms - 1)
                 elif event.mouseevent.key in ["g", "k", "b", "c", "m", "r", "y", "w"]:
                     leg.set_color(event.mouseevent.key)
-                    leg._legmarker.set_color(event.mouseevent.key)
+                    if matplnew:
+                        leg.set_markerfacecolor(event.mouseevent.key)
+                        leg.set_markeredgecolor(event.mouseevent.key)
+                    else:
+                        leg._legmarker.set_color(event.mouseevent.key)
                     plotline.set_color(event.mouseevent.key)
                 elif event.mouseevent.key in ["x", "0", "1", "2", "3", "*", "|","<",
                                               ">",'.', "+", "v", "8", "s","X", "d",
                                               "D", "_", "o", "^"]:
-                    leg._legmarker.set_marker(event.mouseevent.key)
+                    if matplnew:
+                        leg.set_marker(event.mouseevent.key)
+                    else:
+                        leg._legmarker.set_marker(event.mouseevent.key)
+                        
                     plotline.set_marker(event.mouseevent.key)
                 elif event.mouseevent.key == "l":
                     if lw == 0:
@@ -278,6 +310,10 @@ def cp_one(mfig):
     for ax in mfig.axes:
         update_components(ax, mfig)
     mfig.canvas.toolbar.actions()[7].triggered.connect(update_self)
+    if not "update" in mfig.canvas.toolbar.actions()[-1].text():
+        # this means that this hasn't been activated yet on this figure
+        _ = mfig.canvas.toolbar.addAction("update")
+    _ = mfig.canvas.toolbar.actions()[-1].triggered.connect(update_self)
     mfig.canvas.mpl_connect('draw_event', update_self)
 
 def enable_copy_paste(figs=None):
