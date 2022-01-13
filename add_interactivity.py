@@ -16,6 +16,8 @@ if int(".".join(matplotlib.__version__.split(".")[0:1])) >= 3.5:
 else: 
     matplnew = False
 
+print("is new:", matplnew, int(".".join(matplotlib.__version__.split(".")[0:1])))
+
 class add_interactivity_class():
     '''
     class to make the legend clickable.
