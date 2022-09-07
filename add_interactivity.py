@@ -409,7 +409,7 @@ def getfig_data(fig):
     return figstruct
 
 def savefig(fig, mname):
-    figdata = get_fig_data()
+    figdata = getfig_data()
     with open(manem, "w") as fid:
         yaml.dump(figdata, fid)
 
