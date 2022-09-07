@@ -410,7 +410,7 @@ def getfig_data(fig):
 
 def savefig(fig, mname):
     figdata = getfig_data(fig)
-    with open(manem, "w") as fid:
+    with open(mname, "w") as fid:
         yaml.dump(figdata, fid)
 
 def loadfig(figname):
