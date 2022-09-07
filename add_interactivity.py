@@ -418,8 +418,8 @@ def loadfig(figname):
         md=yaml.load(fid, yaml.Loader)
     mshape = md["shape"]
     if len(mshape) == 1:
-        mshape = (mshape[0],1)
-    fig,axes = plt.subplots()
+        mshape = (1,mshape[0])
+    fig,axes = plt.subplots(*mshape)
     if not hasattr(axes, "__len__"):
         axes = np.array([axes])
     else:
