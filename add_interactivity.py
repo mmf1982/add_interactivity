@@ -6,6 +6,7 @@ except:
     matplotlib.use("QT4Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import yaml
 from matplotlib.widgets import TextBox
 coords = None
 legn = None
@@ -377,6 +378,69 @@ def main(notext=False):
     plt.show()
     return
 
+def getfig_data(fig):
+    figstruct = {}
+    figstruct["axes"] = []
+    figshape = (np.array(fig.axes)).shape
+    figstruct["shape"] = figshape
+    axes = np.array(fig.axes).flatten()
+    for ii, ax in enumerate(axes):
+        axdict = {}
+        axdict["title"] = ax.get_title()
+        axdict["xlab"] = ax.get_xlabel()
+        axdict["ylab"] = ax.get_ylabel()
+        axdict["lines"] = []
+        for jj, line in enumerate(ax.lines):
+            linedict = {}
+            linedict["name"] = line.get_label()
+            temp = line.get_data()
+            linedict["xdata"] = temp[0]
+            linedict["ydata"] = temp[1]
+            linedict["color"] = line.get_c()
+            linedict["style"] = line.get_ls()
+            linedict["lw"] = line.get_lw()
+            linedict["marker"] = line.get_marker()
+            linedict["ms"] = line.get_markersize()
+            linedict["mfc"] = line.get_markerfacecolor()
+            linedict["mec"] = line.get_markeredgecolor()
+            linedict["me"] = line.get_markeredgewidth()
+            axdict["lines"].append(linedict)
+        figstruct["axes"].append(axdict)
+    return figstruct
+
+def savefig(fig, mname):
+    figdata = get_fig_data()
+    with open(manem, "w") as fid:
+        yaml.dump(figdata, fid)
+
+def loadfig(figname):
+    with open(figname) as fid:
+        md=yaml.load(fid, yaml.Loader)
+    mshape = md["shape"]
+    if len(mshape) == 1:
+        mshape = (mshape[0],1)
+    fig,axes = plt.subplots()
+    if not hasattr(axes, "__len__"):
+        axes = np.array([axes])
+    else:
+        axes = np.array([axes])
+    axes = axes.flatten()
+    for axd, ax in zip(md["axes"], axes):
+        mlines = axd["lines"]
+        ax.set_xlabel(axd["xlab"])
+        ax.set_ylabel(axd["ylab"])
+        ax.set_title(axd["title"])
+        for line in mlines:
+            ax.plot(line["xdata"], line["ydata"], label=line["name"])
+            ax.set_c(line["color"])
+            ax.set_ls(line["style"])
+            ax.set_lw(line["lw"])
+            ax.set_marker(line["marker"])
+            ax.set_marker_size(line["ms"])
+            ax.set_markerfacecolor(line["mfc"])
+            ax.set_markeredgecolor(line["mec"])
+            ax.set_markeredgewidth(line["me"])
+        ax.legend()
 
 if __name__ == "__main__":
     main()
