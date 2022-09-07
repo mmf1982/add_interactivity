@@ -431,15 +431,16 @@ def loadfig(figname):
         ax.set_ylabel(axd["ylab"])
         ax.set_title(axd["title"])
         for line in mlines:
-            ax.plot(line["xdata"], line["ydata"], label=line["name"])
-            ax.set_c(line["color"])
-            ax.set_ls(line["style"])
-            ax.set_lw(line["lw"])
-            ax.set_marker(line["marker"])
-            ax.set_marker_size(line["ms"])
-            ax.set_markerfacecolor(line["mfc"])
-            ax.set_markeredgecolor(line["mec"])
-            ax.set_markeredgewidth(line["me"])
+            ll = ax.plot(line["xdata"], line["ydata"], label=line["name"])
+            ll = ll[0]
+            ll.set_c(line["color"])
+            ll.set_ls(line["style"])
+            ll.set_lw(line["lw"])
+            ll.set_marker(line["marker"])
+            ll.set_markersize(line["ms"])
+            ll.set_markerfacecolor(line["mfc"])
+            ll.set_markeredgecolor(line["mec"])
+            ll.set_markeredgewidth(line["me"])
         ax.legend()
 
 if __name__ == "__main__":
