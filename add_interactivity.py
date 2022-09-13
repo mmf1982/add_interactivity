@@ -378,12 +378,17 @@ def main(notext=False):
     plt.show()
     return
 
-def getfig_data(fig):
+def getfig_data(fig, ax=None):
     figstruct = {}
     figstruct["axes"] = []
     figshape = (np.array(fig.axes)).shape
     figstruct["shape"] = figshape
-    axes = np.array(fig.axes).flatten()
+    if ax is None:
+        axes = np.array(fig.axes).flatten()
+    else:
+        axes = np.array([fig.axes[ax]])
+        figshape = (1,)
+        figstruct["shape"] = figshape
     for ii, ax in enumerate(axes):
         axdict = {}
         axdict["title"] = ax.get_title()
@@ -408,8 +413,8 @@ def getfig_data(fig):
         figstruct["axes"].append(axdict)
     return figstruct
 
-def savefig(fig, mname):
-    figdata = getfig_data(fig)
+def savefig(fig, mname,ax=None):
+    figdata = getfig_data(fig,ax)
     with open(mname, "w") as fid:
         yaml.dump(figdata, fid)
 
