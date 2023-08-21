@@ -35,7 +35,6 @@ class add_interactivity_class():
         with left/ right: increase/ decrease label font size
     right click: bring to front
     middle click: open text box to change label
-
     """
 
     def __init__(self, legend=None, lines=None, fig=None, lines2=None, ncol=1, loc=0, ax=None, nodrag=False,
@@ -69,8 +68,11 @@ class add_interactivity_class():
             lines = ax.get_lines()
             all_indices = []
             for iidd, line in enumerate(lines):
-                if len(line.get_data()[0]) == 0 and not line.get_visible():
-                    all_indices.append(iidd)
+                try:
+                    if len(line.get_data()[0]) == 0 and not line.get_visible():
+                        all_indices.append(iidd)
+                except TypeError:
+                    pass
             for in_iidd in all_indices[::-1]:
                 _ = lines.pop(in_iidd)
         for line in lines:
@@ -122,7 +124,10 @@ class add_interactivity_class():
             return
         fig = event.artist.figure
         ax = event.artist.axes
-        legend = ax.get_legend()
+        try:
+            legend = ax.get_legend()
+        except AttributeError:
+            return
         leg = event.artist
         # print(event, event.mouseevent.button, leg, leg.get_label())
         try:
@@ -272,7 +277,7 @@ def cp_one(mfig):
         figure handle on which to activate copy/ paste/ delete
     """
     mfig.canvas.mpl_disconnect("all")
-
+    print("in cp_one")
     def update_self(event):
         for ax in mfig.axes:
             update_components(ax, mfig)
@@ -280,7 +285,9 @@ def cp_one(mfig):
     def onpick(event):
         global coords, legn, artist, ax
         artist = event.artist
+        print("in onpick")
         if event.mouseevent.button == 3 and type(artist) != matplotlib.legend.Legend:
+            print("detected click on 3")
             try:
                 leglines = event.artist.axes.get_legend().get_lines()
             except AttributeError:
@@ -327,13 +334,17 @@ def cp_one(mfig):
     d = mfig.canvas.mpl_connect("pick_event", onpick)
     f = mfig.canvas.mpl_connect('button_press_event', onclick)
     for ax in mfig.axes:
+        print("updating comp ", ax)
         update_components(ax, mfig)
     mfig.canvas.toolbar.actions()[7].triggered.connect(update_self)
     if not "update" in mfig.canvas.toolbar.actions()[-1].text():
         # this means that this hasn't been activated yet on this figure
         _ = mfig.canvas.toolbar.addAction("update")
-    _ = mfig.canvas.toolbar.actions()[-1].triggered.connect(update_self)
-    mfig.canvas.mpl_connect('draw_event', update_self)
+        d = mfig.canvas.mpl_connect("pick_event", onpick)
+        print(d)
+        f = mfig.canvas.mpl_connect('button_press_event', onclick)
+        _ = mfig.canvas.toolbar.actions()[-1].triggered.connect(update_self)
+        mfig.canvas.mpl_connect('draw_event', update_self)
 
 
 def enable_copy_paste(figs=None):
@@ -350,12 +361,14 @@ def enable_copy_paste(figs=None):
     print("to copy a line, click the right mouse button on a line")
     print("to paste, press the middle mouse button in an axes")
     print("to delete a line, double click on it")
+    print("here")
     if figs is None:
         figl = plt.get_fignums()
         figs = []
         for fi in figl:
             figs.append(plt.figure(fi))
     for mfig in figs:
+        print(mfig)
         cp_one(mfig)
     return
 
@@ -410,7 +423,21 @@ def getfig_data(fig, ax=None):
         figshape = (1,)
         figstruct["shape"] = figshape
     for ii, ax in enumerate(axes):
-        axdict = {"title": ax.get_title(), "xlab": ax.get_xlabel(), "ylab": ax.get_ylabel(), "lines": []}
+        axdict = {"title": ax.get_title(), "xlab": ax.get_xlabel(), "ylab": ax.get_ylabel(), "lines": [],
+                  "images": [], "collections": []}
+        #for jj, col in enumerate(ax.collections):
+            #coldict = {}
+            #coldict["cmap"] =  col.get_cmap()
+            #coldict["zorder"] = col.get_zorder()
+            #try:
+                #coldict["data"] =  col.get_array()
+            #except:
+                #pass
+            #axdict["collections"].append(coldict)
+        #for jj, col in enumerate(ax.images):
+            #coldict = {"cmap": col.get_cmap(),
+                       #"data": col.get_array()}
+            #axdict["collections"].append(coldict)
         for jj, line in enumerate(ax.lines):
             linedict = {"name": line.get_label()}
             temp = line.get_data()
