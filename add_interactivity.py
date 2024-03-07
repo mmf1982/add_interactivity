@@ -6,9 +6,12 @@ try:
 except:
     matplotlib.use("QT4Agg")
 import matplotlib.pyplot as plt
+from matplotlib.collections import PolyCollection, PathCollection, QuadMesh
+from matplotlib.patches import Rectangle
 import numpy as np
 import yaml
 from matplotlib.widgets import TextBox
+import pandas as pd
 
 coords = None
 legn = None
@@ -276,6 +279,13 @@ def cp_one(mfig):
     mfig: matplotlib.Figure handle
         figure handle on which to activate copy/ paste/ delete
     """
+    try:
+        mfig.canvas.callbacks.callbacks.pop("pick_event")
+        #for cid in mfig.canvas.callbacks.callbacks["pick_event"]:
+        #    print(cid)
+        #    mfig.canvas.mpl_disconnect(mfig.canvas.callbacks.callbacks["pick_event"][cid])
+    except:
+        pass
     mfig.canvas.mpl_disconnect("all")
     print("in cp_one")
     def update_self(event):
@@ -285,7 +295,6 @@ def cp_one(mfig):
     def onpick(event):
         global coords, legn, artist, ax
         artist = event.artist
-        print("in onpick")
         if event.mouseevent.button == 3 and type(artist) != matplotlib.legend.Legend:
             print("detected click on 3")
             try:
@@ -323,12 +332,14 @@ def cp_one(mfig):
     def update_components(ax, mfig):
         for lin in ax.lines:
             if not lin.get_picker():
+                print("add on line ", lin)
                 if float(".".join(matplotlib.__version__.split(".")[:2])) < 3.3:
                     lin.set_picker(5)
                 else:
                     lin.set_picker(True)
                     lin.set_pickradius(5)
             else:
+                print("pass on line ", lin)
                 pass
 
     d = mfig.canvas.mpl_connect("pick_event", onpick)
@@ -336,15 +347,15 @@ def cp_one(mfig):
     for ax in mfig.axes:
         print("updating comp ", ax)
         update_components(ax, mfig)
-    mfig.canvas.toolbar.actions()[7].triggered.connect(update_self)
+    #mfig.canvas.toolbar.actions()[7].triggered.connect(update_self)
     if not "update" in mfig.canvas.toolbar.actions()[-1].text():
         # this means that this hasn't been activated yet on this figure
         _ = mfig.canvas.toolbar.addAction("update")
-        d = mfig.canvas.mpl_connect("pick_event", onpick)
-        print(d)
-        f = mfig.canvas.mpl_connect('button_press_event', onclick)
+        #d2 = mfig.canvas.mpl_connect("pick_event", onpick)
+        #print(d)
+        f2 = mfig.canvas.mpl_connect('button_press_event', onclick)
         _ = mfig.canvas.toolbar.actions()[-1].triggered.connect(update_self)
-        mfig.canvas.mpl_connect('draw_event', update_self)
+        #f3 = mfig.canvas.mpl_connect('draw_event', update_self)
 
 
 def enable_copy_paste(figs=None):
@@ -388,9 +399,10 @@ def interactive():
 
 def main(notext=False):
     fig, ax = plt.subplots(1, 2)
-    ax[0].plot(np.arange(10), lw=6)
-    ax[0].plot(np.arange(10) ** 1.5, 'o', ms=12)
-    ax[0].plot(np.sin(np.arange(10)) * 5, lw=6)
+    ax[0].plot(np.arange(10), lw=6, label="A")
+    ax[0].plot(np.arange(10) ** 1.5, 'o', ms=12, label="B")
+    ax[0].plot(np.sin(np.arange(10)) * 5, lw=6, label="C")
+    plt.legend()
     if not notext:
         print(
             "This is a simple plot to which interactivity has been added:\n",
@@ -406,8 +418,8 @@ def main(notext=False):
             "* a right mouse click on a line in the left plot copies the data.\n",
             "* click middle button in the right plot to paste it.\n"
             "* double click a line to remove it from the plot")
-    mlist = add_ai_toall()
     mlist = enable_copy_paste()
+    mlist = add_ai_toall()
     plt.show()
     return
 
@@ -424,20 +436,8 @@ def getfig_data(fig, ax=None):
         figstruct["shape"] = figshape
     for ii, ax in enumerate(axes):
         axdict = {"title": ax.get_title(), "xlab": ax.get_xlabel(), "ylab": ax.get_ylabel(), "lines": [],
-                  "images": [], "collections": []}
-        #for jj, col in enumerate(ax.collections):
-            #coldict = {}
-            #coldict["cmap"] =  col.get_cmap()
-            #coldict["zorder"] = col.get_zorder()
-            #try:
-                #coldict["data"] =  col.get_array()
-            #except:
-                #pass
-            #axdict["collections"].append(coldict)
-        #for jj, col in enumerate(ax.images):
-            #coldict = {"cmap": col.get_cmap(),
-                       #"data": col.get_array()}
-            #axdict["collections"].append(coldict)
+                  "images": [], "collections": [], "patches": [], "position": ax.get_position(), "scatters": [], "xlims": ax.get_xlim(),
+                  "ylims": ax.get_ylim(), "pcolmesh": []}
         for jj, line in enumerate(ax.lines):
             linedict = {"name": line.get_label()}
             temp = line.get_data()
@@ -451,7 +451,35 @@ def getfig_data(fig, ax=None):
             linedict["mfc"] = line.get_markerfacecolor()
             linedict["mec"] = line.get_markeredgecolor()
             linedict["me"] = line.get_markeredgewidth()
+            linedict["zorder"] = line.get_zorder()
             axdict["lines"].append(linedict)
+        for jj, pol in enumerate(ax.collections):
+            if isinstance(pol, PolyCollection):  # this gets the fill_between plots
+                axdict["collections"].append({"data": [ss.vertices for ss in pol.get_paths()],
+                                           "color": pol.get_facecolor(),
+                                           "zorder": pol.get_zorder()}
+                                           )
+            elif isinstance(pol, PathCollection):  # this gets scatter
+                axdict["scatters"].append({"data": pol.get_offsets(),
+                                           "color": pol.get_facecolor(),
+                                           "zorder": pol.zorder,
+                                           "paths": pol.get_paths(),
+                                           "lw": pol.get_lw()}
+                                           )
+            elif isinstance(pol, QuadMesh):  # this gets pcolormesh
+                axdict["pcolmesh"].append({"coords": pol.get_coordinates(),
+                                           "data": pol.get_array(),
+                                           "cmap": pol.get_cmap(),
+                                           "norm": pol.norm})
+        for pat in ax.patches:  # this is for histograms
+            if isinstance(pat, Rectangle):
+                axdict["patches"].append({"data": [pat.get_xy(), pat.get_width(), pat.get_height()],
+                                        "color": pat.get_facecolor(),
+                                        "zorder": pat.zorder})
+        for im in ax.get_images():
+            axdict["images"].append({"data": im.get_array(),
+                                     "norm": im.norm,
+                                     "cmap": im.get_cmap()})
         figstruct["axes"].append(axdict)
     return figstruct
 
@@ -465,23 +493,57 @@ def savefig(fig, mname, ax=None):
 def loadfig(figname, axes=None):
     with open(figname) as fid:
         md = yaml.load(fid, yaml.Loader)
-    mshape = md["shape"]
-    if len(mshape) == 1:
-        mshape = (1, mshape[0])
-    if axes is None:
-        fig, axes = plt.subplots(*mshape)
+    fig = plt.figure()
     if not hasattr(axes, "__len__"):
         axes = np.array([axes])
     else:
         axes = np.array([axes])
     axes = axes.flatten()
-    for axd, ax in zip(md["axes"], axes):
+    for axd in md["axes"]:
+        ax = fig.add_axes(axd["position"])
+        ax.set_xlim(axd["xlims"])
+        ax.set_ylim(axd["ylims"])
         mlines = axd["lines"]
+        cols = axd["collections"]
+        pats = axd["patches"]
+        ims = axd["images"]
+        scats = axd["scatters"]
+        quads = axd["pcolmesh"]
         ax.set_xlabel(axd["xlab"])
         ax.set_ylabel(axd["ylab"])
         ax.set_title(axd["title"])
+        for im in ims:  # the norm object is not saved correctly
+            #for entr in im["norm"].__dir__():
+            #    if entr[0] == "_" and entr[1] != "_":
+            #        im["norm"].__dict__[entr[1:]] = im["norm"].__dict__[entr]
+            ax.imshow(im["data"], cmap=im["cmap"], norm=im["norm"])
+        for qu in quads:
+            #for entr in qu["norm"].__dir__():
+            #    if entr[0] == "_" and entr[1] != "_":
+            #        qu["norm"].__dict__[entr[1:]] = qu["norm"].__dict__[entr]
+            #import pdb
+            #pdb.set_trace()
+            temp = QuadMesh(coordinates=qu["coords"], array= qu["data"], cmap=qu["cmap"], norm=qu["norm"])
+            ax.add_collection(temp)
+        for col in cols:
+            for dat in col["data"]:
+                temp = PolyCollection([dat], color=col["color"],zorder=col["zorder"])
+                ax.add_collection(temp)
+        for scat in scats:
+            temp = ax.scatter(*scat["data"].T, color=scat["color"], zorder=scat["zorder"], lw=scat["lw"])
+            temp.set_paths(scat["paths"])
+        for pat in pats:
+            temp = Rectangle(*pat["data"], color=pat["color"],zorder=pat["zorder"])
+            ax.add_patch(temp)
         for line in mlines:
-            ll = ax.plot(line["xdata"], line["ydata"], label=line["name"])
+            try:
+                ll = ax.plot(line["xdata"], line["ydata"], label=line["name"], zorder=line["zorder"])
+            except TypeError:
+                if isinstance(line["xdata"][0], pd.Period):
+                    line["xdata"] = np.array([per.to_timestamp() for per in line["xdata"]])
+                if isinstance(line["ydata"][0], pd.Period):
+                    line["ydata"] = np.array([per.to_timestamp() for per in line["ydata"]])
+                ll = ax.plot(line["xdata"], line["ydata"], label=line["name"], zorder=line["zorder"])
             ll = ll[0]
             ll.set_c(line["color"])
             ll.set_ls(line["style"])
@@ -492,6 +554,24 @@ def loadfig(figname, axes=None):
             ll.set_markeredgecolor(line["mec"])
             ll.set_markeredgewidth(line["me"])
         ax.legend()
+    plt.show()
+
+
+def save_load(one, two=None):
+    # this actually does the job better and is so much easier but relies on same libraries...
+    import pickle
+    if two is None:
+        # if only one is provided, that's surely a loading
+        fig = pickle.load(open(one, "rb"))
+        fig.show()
+        return fig
+    else:
+        if isinstance(one, str):
+            "so the first was the sring"
+            two, one = one, two
+        pickle.dump(one, open(two, "wb"))
+        return
+
 
 
 if __name__ == "__main__":
