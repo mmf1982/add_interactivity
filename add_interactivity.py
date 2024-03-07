@@ -229,9 +229,10 @@ class add_interactivity_class():
                 fig.canvas.draw()
                 text_box.disconnect_events()
 
-            ax2 = plt.axes([0.12, 0.05, 0.78, 0.075])
+            ax2 = fig.add_axes([0.12, 0.05, 0.78, 0.075])
             text_box = TextBox(ax2, 'new leg ', initial="")
             text_box.on_submit(submit)
+            
         elif event.mouseevent.key == "left" and not isline and event.mouseevent.button == 1:
             # if leg.parent == ax:
             if legend.texts[0].get_fontsize() > 1:
